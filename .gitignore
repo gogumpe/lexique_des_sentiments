@@ -1,0 +1,12 @@
+# Normes brutes (NRC : usage de recherche non commercial, pas de redistribution publique)
+normes/
+
+# Consignes pour Claude (gardées en local)
+CLAUDE.md
+CONCEPTION.md
+
+# Fichiers de travail
+__pycache__/
+*.pyc
+.claude/
+essai-*.html

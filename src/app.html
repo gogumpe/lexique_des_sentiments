@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lexique des sentiments</title>
+<style>
+/* polices intégrées par assemble.py depuis src/fonts (licence OFL) :
+   Gloria Hallelujah pour ce qui parle des sentiments, Comfortaa pour les indications */
+@font-face{font-family:"Gloria Hallelujah";src:url(fonts/GloriaHallelujah-Regular.ttf) format("truetype");font-display:swap}
+@font-face{font-family:"Comfortaa";src:url(fonts/Comfortaa-VariableFont_wght.ttf) format("truetype");font-weight:300 700;font-display:swap}
+:root{--bg:#fff;--fg:#222;--muted:#555;--faint:#888;--border:#ddd;--line:#ccc;--hover:#eef;--cur:#e8e8f8;--curfg:#222;--chip:#f6f6f6;--btn:#fff;--btnb:#bbb;--ring:#eee;--spoke:#ddd;--label:#444;--accent:#7a7fd6;
+  --f-amour:#d6457a;--f-manque:#9b59b6;--f-joie:#e09a00;--f-surprise:#17a2b8;--f-colere:#d03a2b;--f-degout:#8a6d2b;--f-tristesse:#3a6fc4;--f-peur:#2e8b57;
+  --senti:"Gloria Hallelujah",var(--sans);--ind:"Comfortaa",var(--sans);--sans:system-ui,-apple-system,"Segoe UI",sans-serif;--mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,"Liberation Mono",monospace}
+/* mode nuit : noir neutre, filets fins, sélection en blanc */
+body.dark{--bg:#111111;--fg:#e6e6e6;--muted:#8c8c8c;--faint:#6f6f6f;--border:#262626;--line:#262626;--hover:#1b1b1b;--cur:#222222;--curfg:#ffffff;--chip:#111111;--btn:#111111;--btnb:#333333;--ring:#1f1f1f;--spoke:#2a2a2a;--label:#8c8c8c;--accent:#ffffff;
+  --f-amour:#ff85c8;--f-manque:#b394ff;--f-joie:#f2cc55;--f-surprise:#55d4e6;--f-colere:#ff8070;--f-degout:#b8d65a;--f-tristesse:#7aaaff;--f-peur:#5ee0a8}  /* « spectre régulier » : teintes espacées, même clarté */
+body{font-family:var(--ind);margin:0;color:var(--fg);background:var(--bg);line-height:1.5;font-size:14.5px}
+a{color:inherit}
+:focus-visible{outline:1px solid var(--muted);outline-offset:2px}
+/* chiffres, compteurs et légendes d'axes en chasse fixe */
+.num,#fbox .c,#list summary .small,#kv,#fcount,#map .hint{font-family:var(--mono);font-size:11.5px;letter-spacing:0}
+/* titres de rubriques : petites capitales espacées */
+/* contenus qui parlent des sentiments (jamais ce qui est en gris) */
+.w,#list summary b,#ffam label span:not(.c),#fpk label,.chip>span,#fiche h3,.rub{font-family:var(--senti)}
+h2,.rub b,.fh,#fbox>summary b,#lbox>summary b{font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--label)}
+header{height:44px;box-sizing:border-box;padding:0 16px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center}
+header h1{font-size:14px;font-weight:600;margin:0 auto 0 0}
+header h1 a{text-decoration:none}
+button{font-family:inherit}
+.chip button,.add{border:1px solid var(--btnb);border-radius:999px;background:var(--btn);color:var(--fg);cursor:pointer;padding:2px 11px;font-size:12px}
+.chip button:hover,.add:hover{border-color:var(--muted)}
+/* boutons à pictogramme : rond, contour fin, dessin au trait de la couleur du texte */
+.ico{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;box-sizing:border-box;padding:0;border:1px solid var(--btnb);border-radius:50%;background:var(--btn);color:var(--fg);cursor:pointer;vertical-align:middle}
+.ico:hover,.ico.on{border-color:var(--fg)}
+.ico svg,.search svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+/* boutons texte dans les titres « Filtres » et « Liste des mots » : discrets, gris, à droite */
+#fbox>summary,#lbox>summary{position:relative}
+.tbtn{border:none;background:none;padding:0;margin-left:8px;font-size:11px;color:var(--label);cursor:pointer}
+.tbtn:hover{color:var(--fg)}
+.xtrail{margin:0 6px 0 0;font-size:14px;line-height:1;vertical-align:-1px}
+.grid{display:grid;grid-template-columns:240px 1fr 400px;height:calc(100vh - 44px)}
+.col{overflow:auto;padding:12px 14px;border-right:1px solid var(--border)}
+.col:last-child{border-right:none}
+h2{margin:14px 0 4px}
+h2:first-child{margin-top:0}
+h3{font-size:20px;font-weight:600;margin:0 0 6px}
+/* recherche : champ arrondi, loupe à gauche */
+.search{position:relative}
+.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+input[type=search]{width:100%;box-sizing:border-box;padding:6px 12px 6px 32px;font-size:14px;font-family:var(--senti);background:var(--bg);color:var(--fg);border:1px solid var(--btnb);border-radius:999px;outline:none}
+input[type=search]:focus{border-color:var(--muted)}
+/* cases à cocher : contour fin ; cochée, la case est noircie d'un gribouillis à la couleur du texte (masque SVG) */
+input[type=checkbox]{-webkit-appearance:none;appearance:none;position:relative;width:14px;height:14px;margin:0 6px 0 0;box-sizing:border-box;border:1.3px solid var(--muted);border-radius:3px;background:none;vertical-align:-2px;cursor:pointer}
+input[type=checkbox]:checked{border-color:var(--fg)}
+input[type=checkbox]:checked::before{content:"";position:absolute;inset:-1.3px;background:var(--fg);
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M2 3.5l4-2.2-3.4 5.6 7.6-5.6-7 9.2 9.4-8.4-6.4 9.6 7-5.4-3 4.2' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M2 3.5l4-2.2-3.4 5.6 7.6-5.6-7 9.2 9.4-8.4-6.4 9.6 7-5.4-3 4.2' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat}
+/* curseur : ligne fine grise, point clair */
+input[type=range]{-webkit-appearance:none;appearance:none;background:transparent;height:22px;width:140px;margin:0 6px;vertical-align:middle;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--muted)}
+input[type=range]::-moz-range-track{height:1px;background:var(--muted)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;margin-top:-5px;border-radius:50%;background:var(--fg);border:none}
+input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--fg);border:none}
+/* « i » cerclé : renvoie vers l'explication dans À propos */
+.info{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;box-sizing:border-box;border:1px solid var(--faint);border-radius:50%;color:var(--faint);font:italic 600 9.5px/1 Georgia,serif;text-decoration:none;text-transform:none;letter-spacing:0;vertical-align:1px;margin-left:6px}
+.info:hover{color:var(--fg);border-color:var(--fg)}
+.page h2[id]{scroll-margin-top:12px}
+.w{cursor:pointer;padding:1px 4px}
+.w:hover{background:var(--hover)}
+.w.cur{background:var(--cur);color:var(--curfg);border-radius:4px}
+.small{font-size:12.5px;color:var(--muted)}
+#map{width:100%;display:block}
+#map.rot{touch-action:none;cursor:grab}
+#mapbar{margin:6px 0;display:flex;gap:6px;align-items:center}
+#map .lbl{font-family:var(--senti);font-size:13px;paint-order:stroke;stroke:var(--bg);stroke-width:3px;stroke-linejoin:round;cursor:pointer;fill:var(--fg)}
+#map .hint{font-size:10.5px;fill:var(--faint)}
+#map .ring{fill:none;stroke:var(--ring)}
+#map .spoke{stroke:var(--spoke)}
+.w,#map,.link{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.rub{margin:12px 0}
+.rub b{display:block;margin-bottom:2px}
+.link,#trail span{cursor:pointer;text-decoration:underline;text-decoration-color:var(--faint);text-underline-offset:2px}
+.link:hover,#trail span:hover{text-decoration-color:var(--fg)}
+.page{max-width:820px;margin:0 auto;padding:16px;overflow:auto;height:calc(100vh - 44px);box-sizing:border-box}
+.hidden{display:none}
+#fbox>summary,#lbox>summary{cursor:pointer;margin:12px 0 6px}
+.fh{margin:10px 0 2px}
+.warn{font-size:12px;color:var(--faint);margin:2px 0 4px}
+#fbox label{display:block;font-size:13px;cursor:pointer}
+#fbox label .c{color:var(--faint)}
+#list details{margin:2px 0}
+#list summary{cursor:pointer;font-size:13.5px}
+#list summary b{font-weight:600}
+/* sous-familles : boutons côte à côte ; une seule ouverte à la fois, ses mots en liste dessous */
+#list .subs{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0 4px 14px}
+.sb{border:1px solid var(--btnb);border-radius:999px;background:none;color:var(--muted);cursor:pointer;padding:1px 9px;font-size:12px}
+.sb:hover{border-color:var(--muted)}
+.sb.on{color:var(--fg);border-color:var(--fg);background:var(--cur)}
+.sb .n{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-left:4px}
+#list .ws{margin:2px 0 8px 14px}
+#list .sh{font-size:12px;color:var(--muted);margin:6px 0 0 14px}
+.chip{display:inline-block;border:1px solid var(--btnb);border-radius:999px;padding:0 9px;margin:0 2px;background:var(--chip)}
+.chip button{padding:0 5px;margin-left:2px;border:none}
+.fi{border-bottom:1px solid var(--border);margin-bottom:14px;padding-bottom:10px}
+@media (max-width:1000px){
+  .grid{grid-template-columns:1fr;height:auto}
+  .col{border-right:none;border-bottom:1px solid var(--border);overflow:visible}
+  .page{height:auto}
+  header{height:auto;padding:8px 12px;gap:10px}
+  #list summary,#list .w{padding:5px 2px}
+  .sb{padding:4px 11px;font-size:13px}
+  #fbox label{padding:3px 0}
+  .add{padding:3px 10px;font-size:14px}
+  .ico{width:36px;height:36px}
+  .ico svg{width:18px;height:18px}
+  .tbtn{font-size:12px;padding:2px 0}
+  /* deux colonnes pour les filtres et pour les mots de la liste */
+  #ffam,#fpk{display:grid;grid-template-columns:1fr 1fr;column-gap:10px}
+  #ffam label,#fpk label{white-space:nowrap;font-size:12.5px}
+  #list .ws{display:grid;grid-template-columns:1fr 1fr;column-gap:8px}
+  .chip button{padding:3px 9px;font-size:14px}
+  .info{width:18px;height:18px;font-size:11px}
+  input[type=checkbox]{width:18px;height:18px;vertical-align:-4px}
+  input[type=range]{height:32px;width:170px}
+  input[type=range]::-webkit-slider-thumb{width:16px;height:16px;margin-top:-8px}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px}
+  #map .lbl{font-size:14px}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1><a href="#voisinage">Lexique des sentiments</a></h1>
+  <a class="ico" id="n-apropos" href="#apropos" title="À propos" aria-label="À propos"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.4c-.6.3-1 .8-1 1.5v.6"/><circle cx="12" cy="16.9" r=".5"/></svg></a>
+  <button class="ico" id="theme" type="button"></button>
+</header>
+<div id="v-voisinage" class="grid">
+  <div class="col">
+    <div class="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg><input type="search" id="q" aria-label="Chercher un mot"></div>
+    <details id="fbox"><summary><b>Filtres</b><a class="info" href="#apropos/filtres" title="Comment marchent les filtres" aria-label="Comment marchent les filtres">i</a> <button class="tbtn" id="freset" type="button">tout effacer</button> <span id="fcount" class="small"></span></summary>
+      <div class="fh">Famille</div><div id="ffam"></div>
+      <div class="fh">Systèmes de Panksepp<a class="info" href="#apropos/panksepp" title="Les systèmes de Panksepp" aria-label="Les systèmes de Panksepp">i</a></div>
+      <div id="fpk"></div>
+    </details>
+    <details id="lbox" open><summary><b>Liste des mots</b><a class="info" href="#apropos/liste" title="Choisir un ou plusieurs mots" aria-label="Choisir un ou plusieurs mots">i</a></summary><div id="list"></div></details>
+  </div>
+  <div class="col">
+    <div id="trail" class="small"></div>
+    <div id="centers" style="margin:6px 0"></div>
+    <div id="assoc" class="small"></div>
+    <div id="mapbar"><button class="ico" id="b3d" type="button"></button><button class="ico hidden" id="bface" type="button" title="Vue de face" aria-label="Vue de face"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v5h5"/><path d="M4.6 9A8 8 0 1 1 6 17.3"/></svg></button><a class="info" href="#apropos/roue" title="Lire la roue" aria-label="Lire la roue">i</a></div>
+    <svg id="map" role="img" aria-label="Le mot choisi au centre, ses voisins autour"></svg>
+    <div id="dirmsg" class="small"></div>
+    <label class="small"><input type="range" id="k" min="6" max="20" value="12" aria-label="Nombre de voisins" title="Nombre de voisins"> <span id="kv">12</span></label>
+  </div>
+  <div class="col" id="fiche"></div>
+</div>
+<div id="v-apropos" class="page hidden">
+  <h2 style="font-size:18px">À propos de cet essai</h2>
+  <p>Cet outil part du mot qui vous vient et montre les mots de sens voisin, pour trouver le plus juste. Le lexique compte <span id="nwords"></span> mots, répartis en huit familles. Il remplace la roue des émotions par une roue centrée sur votre mot.</p>
+  <p>On peut placer jusqu'à cinq mots au centre (Maj + clic, ou appui long sur mobile) : les voisins sont alors les mots les plus proches de leur association, calculée comme la moyenne de leurs vecteurs. Si les mots au centre sont très éloignés, leur moyenne tombe dans une zone où aucun mot ne se trouve : les voisins proposés nomment alors mal leur association.</p>
+  <h2 id="info-roue">Lire la roue</h2>
+  <ul>
+    <li>Au centre : le mot choisi. Autour : ses voisins de sens, écrits dans la couleur de leur famille. Plus un voisin est proche du centre, plus son sens est proche.</li>
+    <li>Sa direction indique s'il est plus agréable (à droite) ou plus désagréable (à gauche), plus agité (en haut) ou plus calme (en bas), d'après le NRC VAD.</li>
+    <li>Cliquer sur un mot le place au centre. Maj + clic, ou appui long sur mobile, l'ajoute au centre (cinq mots au plus).</li>
+    <li>Le curseur « Nombre de voisins » règle combien de voisins sont affichés. Au survol d'un mot, on lit sa proximité exacte.</li>
+  </ul>
+  <h2 id="info-3d">La vue 3D (en test)</h2>
+  <ul>
+    <li>La profondeur ajoute le contrôle, à agrément égal : vers l'avant, plus maîtrisé ; vers l'arrière, moins maîtrisé.</li>
+    <li>On fait tourner la roue à la souris ou au doigt ; « Vue de face » revient à la vue de départ, identique à la roue 2D.</li>
+    <li>Vu de face, un voisin placé devant ou derrière le centre paraît plus proche qu'il ne l'est. Les mots écrits en grand et nets sont devant, les petits et pâles derrière.</li>
+    <li>Les points trop serrés sont légèrement écartés pour rester lisibles : leur position est approchée. Les petits écarts de contrôle ne sont pas fiables.</li>
+  </ul>
+  <h2 id="info-liste">La liste des mots</h2>
+  <ul>
+    <li>Les mots sont rangés par famille, puis par sous-famille. Ouvrir une famille montre ses sous-familles ; cliquer sur l'une d'elles affiche ses mots.</li>
+    <li>Un clic simple sur un mot le place seul au centre : les mots choisis avant sont retirés.</li>
+    <li>Un appui long (ou Maj + clic sur ordinateur) ajoute le mot à ceux déjà au centre, jusqu'à cinq.</li>
+    <li>Cela vaut aussi pour les mots de la roue et les mots soulignés des fiches.</li>
+  </ul>
+  <h2 id="info-filtres">Les filtres</h2>
+  <ul>
+    <li>Plusieurs cases cochées dans un même filtre : l'une ou l'autre. Des cases cochées dans les deux filtres : les deux à la fois.</li>
+    <li>Les filtres s'appliquent à la liste des mots et aux voisins affichés sur la roue.</li>
+  </ul>
+  <h2 id="info-panksepp">Les systèmes de Panksepp</h2>
+  <ul>
+    <li>Le neuroscientifique Jaak Panksepp décrit sept systèmes émotionnels de base, communs aux mammifères : Seeking (élan, curiosité), Rage (poussée contre), Fear (menace, tension), Lust (désir sexuel), Care (soin, tendresse), Panic/Grief (absence, manque) et Play (jeu, rire). L'outil y ajoute Spirituality (lien à plus vaste).</li>
+    <li>Chaque mot est rattaché à zéro, un ou plusieurs systèmes, centraux ou seulement présents.</li>
+    <li id="pkwarn">Ces systèmes ne couvrent pas tout le lexique : certains mots n'en ont aucun et disparaissent dès qu'un système est coché.</li>
+  </ul>
+  <h2>Comment la proximité est calculée</h2>
+  <ul>
+    <li>Chaque mot a une fiche : définition, ce qui la déclenche, ce que l'on sent dans le corps, ce vers quoi elle pousse, nuances avec les voisins.</li>
+    <li>Les quatre premières rubriques sont transformées en un vecteur de 1 024 nombres par le modèle multilingue <i>BGE-M3</i> (BAAI), conçu pour comparer le sens de textes. La rubrique « nuances » n'est pas utilisée, car elle nomme les voisins et rapprocherait artificiellement les mots.</li>
+    <li>La proximité entre deux mots est le cosinus entre leurs vecteurs (1 = sens identique).</li>
+    <li>La direction (plus agréable, plus agité…) vient de notes humaines. Pour la valence : la moyenne du NRC VAD v2.1 (via les équivalents anglais, recalé sur l'échelle française) et de la méta-norme française EMONORM (Leveau et al., 2012) quand le mot y figure ; quand les deux s'écartent nettement, le désaccord a été tranché au cas par cas. Pour l'activation et le contrôle : le NRC VAD seul, les normes françaises étant trop peu fiables pour l'activation. Les différences de moins de 0,1 sont ignorées dans les descriptions.</li>
+    <li>La vue 3D (en test) ajoute un troisième axe, le contrôle relatif : le contrôle du NRC VAD dont on a retiré la part que l'agrément suffit à prévoir. Elle indique si un voisin donne plus ou moins de prise que le mot du centre, à agrément égal. Entre mots proches, les petits écarts de contrôle relèvent souvent du bruit de mesure.</li>
+  </ul>
+  <h2>Limites</h2>
+  <ul>
+    <li>La proximité reflète la façon dont les fiches sont rédigées ; une fiche maladroite déplace le mot.</li>
+    <li>Les proximités sont toutes assez élevées (entre 0,6 et 0,85), car tous les mots parlent d'émotions pénibles : ce sont les écarts entre voisins qui comptent, pas la valeur absolue.</li>
+    <li>Les familles (couleurs) servent seulement de repère : les voisins sont calculés sur le sens des fiches, quelle que soit leur famille.</li>
+  </ul>
+</div>
+<script>
+/*DATA*/
+</script>
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const norm = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+const NS = "http://www.w3.org/2000/svg";
+const el = (t, a, p) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; };
+const ZN = {amour:"Amour et lien", manque:"Manque et aspiration", joie:"Joie", surprise:"Surprise et perplexité", colere:"Colère", degout:"Dégoût", tristesse:"Tristesse", peur:"Peur et anxiété"};
+const ZC = {}; Object.keys(ZN).forEach(z => ZC[z] = `var(--f-${z})`);  // couleur de chaque famille (variables CSS --f-…)
+const ORI = {soi:"porte sur moi", autre:"porte sur l'autre ou le monde", "soi+autre":"porte sur moi et sur l'autre", diffus:"sans objet clair"};
+const idx = {}; VW.forEach((w, i) => idx[w.m] = i);
+let centers = [idx["tristesse"]], trail = [[...centers]], K = 12;
+const MAXC = 5;
+
+// ---------- calculs ----------
+function centroid(cs){
+  const d = VEC[0].length, v = new Array(d).fill(0);
+  cs.forEach(i => VEC[i].forEach((x, k) => v[k] += x));
+  const n = Math.hypot(...v) || 1; return v.map(x => x / n);
+}
+const dot = (a, b) => a.reduce((s, x, k) => s + x * b[k], 0);
+function neighbours(cs, k){
+  const c = centroid(cs);
+  return VW.map((w, j) => [j, dot(VEC[j], c)]).filter(([j]) => !cs.includes(j) && passes(VW[j])).sort((a, b) => b[1] - a[1]).slice(0, k);
+}
+function ref(cs){  // tonalité moyenne des mots au centre
+  const m = f => cs.reduce((s, i) => s + VW[i][f], 0) / cs.length;
+  const os = [...new Set(cs.map(i => VW[i].o))];
+  return {va: m("va"), ar: m("ar"), do: m("do"), dc: m("dc"), o: os.length === 1 ? os[0] : null};
+}
+function diffText(a, b){
+  const t = [], dv = b.va - a.va, da = b.ar - a.ar, dd = b.do - a.do;
+  if (Math.abs(dv) >= 0.1) t.push(dv > 0 ? "plus agréable" : "plus désagréable");
+  if (Math.abs(da) >= 0.1) t.push(da > 0 ? "plus agité" : "plus calme");
+  if (Math.abs(dd) >= 0.15) t.push(dd > 0 ? "plus en maîtrise" : "plus impuissant");
+  if (a.o && a.o !== b.o) t.push(ORI[b.o]);
+  return t.join(", ") || "très semblable en tonalité";
+}
+
+// ---------- navigation ----------
+function setCenters(cs, keepMsg){
+  centers = cs;
+  const last = trail[trail.length - 1];
+  if (!last || last.join() !== cs.join()) trail.push([...cs]);
+  if (trail.length > 8) trail = trail.slice(-8);
+  if (!keepMsg) $("dirmsg").textContent = "";
+  revealCenters(); render();
+}
+const goSingle = i => setCenters([i]);
+function addCenter(i){
+  if (centers.includes(i)) return;
+  if (centers.length >= MAXC){ $("dirmsg").textContent = `Cinq mots au plus au centre : retirez-en un d'abord.`; return; }
+  setCenters([...centers, i]);
+}
+function removeCenter(i){ if (centers.length > 1) setCenters(centers.filter(c => c !== i)); }
+// clic : le mot passe seul au centre ; Maj + clic ou appui long : il s'ajoute au centre
+let lpAt = 0;
+function bindPick(e, i){
+  let t = null, x0 = 0, y0 = 0;
+  const stop = () => { clearTimeout(t); t = null; };
+  e.addEventListener("pointerdown", ev => {
+    if (ev.button) return;
+    x0 = ev.clientX; y0 = ev.clientY;
+    t = setTimeout(() => { t = null; lpAt = Date.now(); try { navigator.vibrate && navigator.vibrate(30); } catch(err) {} addCenter(i); }, 500);
+  });
+  e.addEventListener("pointermove", ev => { if (t && Math.hypot(ev.clientX - x0, ev.clientY - y0) > 10) stop(); });
+  ["pointerup", "pointercancel", "pointerleave"].forEach(n => e.addEventListener(n, stop));
+  e.addEventListener("contextmenu", ev => ev.preventDefault());
+  e.addEventListener("click", ev => { if (Date.now() - lpAt < 800) return; ev.shiftKey ? addCenter(i) : goSingle(i); });
+}
+
+// ---------- affichage ----------
+const PK = {R:"Seeking", C:"Rage", P:"Fear", D:"Lust", S:"Care", X:"Panic/Grief", J:"Play", L:"Spirituality"};
+const PKFR = {R:"élan, curiosité", C:"poussée contre", P:"menace, tension", D:"désir sexuel", S:"soin, tendresse", X:"absence, manque", J:"jeu, rire", L:"lien à plus vaste"};
+VW.forEach(w => { w.ing = {}; (w.i.match(/[A-Z]\d/g) || []).forEach(t => w.ing[t[0]] = +t[1]); });
+const ZORDER = Object.keys(TREE).map(f => Object.keys(ZN).find(k => ZN[k] === f));
+const FIL = {fam: new Set(), pk: new Set()};
+const passFam = w => !FIL.fam.size || FIL.fam.has(w.z);
+const passPk = w => !FIL.pk.size || [...FIL.pk].some(k => w.ing[k]);
+const passes = w => passFam(w) && passPk(w);
+function renderFilters(){
+  const cnt = (test) => VW.filter(test).length;
+  $("ffam").innerHTML = ZORDER.map(z => `<label><input type="checkbox" data-f="fam" value="${z}" ${FIL.fam.has(z) ? "checked" : ""}> <span style="color:${ZC[z]}">${ZN[z]}</span> <span class="c">${cnt(w => w.z === z && passPk(w))}</span></label>`).join("");
+  $("fpk").innerHTML = Object.keys(PK).map(k => `<label title="${PKFR[k]}"><input type="checkbox" data-f="pk" value="${k}" ${FIL.pk.has(k) ? "checked" : ""}> ${PK[k]} <span class="c">${cnt(w => w.ing[k] && passFam(w))}</span></label>`).join("");
+  document.querySelectorAll("#fbox input[data-f]").forEach(el => el.onchange = () => { const s = FIL[el.dataset.f]; el.checked ? s.add(el.value) : s.delete(el.value); render(); });
+  const none = VW.filter(w => !Object.keys(w.ing).length).length;
+  $("pkwarn").textContent = `Ces systèmes ne couvrent pas tout le lexique : ${none} mots n'en ont aucun et disparaissent dès qu'un système est coché.`;
+  const n = VW.filter(passes).length;
+  $("fcount").textContent = (FIL.fam.size || FIL.pk.size) ? `${n} mots sur ${VW.length}` : "";
+}
+// ces deux boutons sont dans un <summary> : on empêche le clic d'ouvrir ou de fermer la rubrique
+$("freset").onclick = ev => { ev.preventDefault(); FIL.fam.clear(); FIL.pk.clear(); render(); };
+// openState : familles dépliées ; selSub : la seule sous-famille ouverte (« famille|sous-famille »)
+const openState = {};
+let selSub = null;
+function openSub(k){  // ouvre une sous-famille, referme les autres familles
+  selSub = k;
+  const z = k.split("|")[0];
+  for (const f in openState) openState[f] = f === z;
+  openState[z] = true;
+}
+// montre dans la liste la sous-famille du dernier mot placé au centre
+const revealCenters = () => { const i = centers[centers.length - 1]; openSub(VW[i].z + "|" + VW[i].sf); };
+function renderList(){
+  const q = norm($("q").value.trim());
+  let h = "";
+  ZORDER.forEach(z => {
+    const fam = ZN[z];
+    const subs = TREE[fam].map(sf => [sf, VW.map((w, i) => i).filter(i => VW[i].z === z && VW[i].sf === sf && passes(VW[i]) && (!q || norm(VW[i].m).includes(q))).sort((x, y) => VW[x].m.localeCompare(VW[y].m, "fr"))]).filter(([sf, ws]) => ws.length);
+    if (!subs.length) return;
+    const n = subs.reduce((s, x) => s + x[1].length, 0);
+    const famOpen = q || openState[z];
+    const words = ws => `<div class="ws">` + ws.map(i => `<div class="w ${centers.includes(i) ? "cur" : ""}" data-i="${i}">${esc(VW[i].m)}</div>`).join("") + `</div>`;
+    h += `<details data-k="${z}" ${famOpen ? "open" : ""}><summary><b style="color:${ZC[z]}">${fam}</b> <span class="small">${n}</span></summary>`;
+    if (q) subs.forEach(([sf, ws]) => { h += `<div class="sh">${esc(sf)}</div>` + words(ws); });  // recherche : tous les mots trouvés, par sous-famille
+    else {
+      h += `<div class="subs">` + subs.map(([sf, ws]) => { const k = z + "|" + sf;
+        return `<button type="button" class="sb ${selSub === k ? "on" : ""}" data-k="${esc(k)}">${esc(sf)}<span class="n">${ws.length}</span></button>`; }).join("") + `</div>`;
+      const cur = subs.find(([sf]) => selSub === z + "|" + sf);
+      if (cur) h += words(cur[1]);
+    }
+    h += `</details>`;
+  });
+  $("list").innerHTML = h || `<p class="small">Aucun mot ne correspond.</p>`;
+  $("list").querySelectorAll("details").forEach(d => d.addEventListener("toggle", () => { openState[d.dataset.k] = d.open; }));
+  $("list").querySelectorAll(".sb").forEach(b => b.onclick = () => { if (selSub === b.dataset.k) selSub = null; else openSub(b.dataset.k); renderList(); });
+  $("list").querySelectorAll(".w").forEach(e => bindPick(e, +e.dataset.i));
+}
+function renderCenters(){
+  $("centers").innerHTML = centers.map(i => `<span class="chip"><span style="color:${ZC[VW[i].z]}">${esc(VW[i].m)}</span>${centers.length > 1 ? ` <button data-x="${i}" title="retirer du centre">×</button>` : ""}</span>`).join(" + ") +
+    ` <a class="info" href="#apropos/roue" title="Ajouter un mot au centre" aria-label="Ajouter un mot au centre">i</a>`;
+  $("centers").querySelectorAll("[data-x]").forEach(b => b.onclick = () => removeCenter(+b.dataset.x));
+}
+function draw(){
+  const svg = $("map");
+  const W = Math.max(420, svg.parentNode.clientWidth - 4);
+  let H = Math.round(window.innerWidth <= 1000 ? Math.min(W, 560) : Math.max(320, Math.min(W, window.innerHeight - 230, 760)));
+  const mx = W < 600 ? 70 : 80, my = 30;  // marges : place des étiquettes des voisins et des légendes d'axes
+  const R = Math.min(W / 2 - mx, H / 2 - my); H = Math.round(2 * (R + my));
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("height", H); svg.innerHTML = "";
+  const cx = W / 2, cy = H / 2, r0 = Math.max(W < 600 ? 50 : 65, 14 + 10 * centers.length);  // r0 : place des mots au centre
+  const nb = neighbours(centers, K);
+  if (!nb.length){ $("assoc").textContent = "Aucun voisin ne passe les filtres."; const t = el("text", {x: W / 2, y: H / 2, "text-anchor": "middle", class: "lbl"}, svg); t.textContent = centers.map(i => VW[i].m).join(" + "); return; }
+  const smax = nb[0][1], smin = nb[nb.length - 1][1], a = ref(centers);
+  [0.33, 0.66, 1].forEach(f => el("circle", {cx, cy, r: r0 + f * (R - r0), class: "ring"}, svg));
+  svg.classList.toggle("rot", mode3d);
+  if (mode3d) draw3d(svg, nb, a, cx, cy, R, r0, smax, smin);
+  else draw2d(svg, nb, a, W, H, cx, cy, R, r0, smax, smin);
+  $("assoc").textContent = "";
+}
+// Les mots sont écrits dans la couleur de leur famille, sans point.
+const wordColor = z => ZC[z];
+function word(svg, a, j, s, x, y, size, op){  // un voisin : son nom, centré sur sa position, cliquable
+  const b = VW[j], t = el("text", {x, y: y + size * 0.35, "text-anchor": "middle", class: "lbl", style: `fill:${wordColor(b.z)};font-size:${size.toFixed(1)}px`}, svg);
+  if (op != null) t.setAttribute("opacity", op);
+  t.textContent = b.m; bindPick(t, j);
+  el("title", {}, t).textContent = `${b.m} — proximité ${s.toFixed(2)} — ${diffText(a, b)}`;
+}
+function drawCenters(svg, cx, cy){  // le ou les mots au centre, en gras, chacun dans sa couleur, l'un sous l'autre
+  const lh = 18, y0 = cy + 6 - (centers.length - 1) * lh / 2;
+  centers.forEach((i, k) => {
+    const t = el("text", {x: cx, y: y0 + k * lh, "text-anchor": "middle", class: "lbl", "font-size": "16", "font-weight": "bold", style: `fill:${wordColor(VW[i].z)}`}, svg);
+    t.textContent = VW[i].m;
+  });
+}
+const radius = (s, smax, smin, R, r0) => r0 + (smax === smin ? 0.5 : (smax - s) / (smax - smin)) * (R - r0);
+function draw2d(svg, nb, a, W, H, cx, cy, R, r0, smax, smin){
+  const hint =(x, y, t, rot) => { const e = el("text", {x, y, "text-anchor": "middle", class: "hint"}, svg); if (rot) e.setAttribute("transform", `rotate(${rot} ${x} ${y})`); e.textContent = t; };
+  // sur les côtés, le texte est tourné : la flèche « ↑ » pointe alors vers l'extérieur
+  hint(cx, 12, "plus agité ↑", 0); hint(cx, H - 4, "plus calme ↓", 0); hint(W - 12, cy, "plus agréable ↑", 90); hint(12, cy, "plus désagréable ↑", -90);
+  const P = nb.map(([j, s]) => {
+    const b = VW[j], dv = b.va - a.va, da = b.ar - a.ar;
+    let ang = Math.atan2(da, dv); if (Math.hypot(dv, da) < 0.05) ang = -Math.PI / 2 + j;
+    return {j, s, ang, rr: radius(s, smax, smin, R, r0)};
+  });
+  for (let it = 0; it < 200; it++){
+    let moved = false;
+    for (let p = 0; p < P.length; p++) for (let q = p + 1; q < P.length; q++){
+      const A = P[p], B = P[q];
+      const xa = cx + A.rr * Math.cos(A.ang), ya = cy - A.rr * Math.sin(A.ang), xb = cx + B.rr * Math.cos(B.ang), yb = cy - B.rr * Math.sin(B.ang);
+      if (Math.abs(xa - xb) < 80 && Math.abs(ya - yb) < 20){
+        const d = 0.04 * (((B.ang - A.ang + 3 * Math.PI) % (2 * Math.PI)) - Math.PI >= 0 ? 1 : -1);
+        A.ang -= d; B.ang += d; moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+  P.forEach(p => word(svg, a, p.j, p.s, cx + p.rr * Math.cos(p.ang), cy - p.rr * Math.sin(p.ang), window.innerWidth <= 1000 ? 14 : 13));
+  drawCenters(svg, cx, cy);
+}
+// ---------- vue 3D ----------
+// x = valence (droite : plus agréable), y = activation (haut : plus agité), z = contrôle relatif dc (avant : plus maîtrisé).
+// Direction = (Δva, Δar, Δdc) normalisé, distance = celle de la roue 2D. Projection orthographique après rotation :
+// de face (yaw = pitch = 0), on retrouve les axes de la roue 2D et la profondeur est cachée.
+let mode3d = false, yaw = 0, pitch = 0;
+function rot(x, y, z){  // tourne autour de l'axe vertical (yaw) puis horizontal (pitch) ; renvoie [x, y, profondeur], profondeur > 0 = vers l'observateur
+  const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+  const x1 = x * cy + z * sy, z1 = z * cy - x * sy;
+  return [x1, y * cp - z1 * sp, y * sp + z1 * cp];
+}
+// Écarte dans l'espace les voisins trop proches les uns des autres, pour que leurs noms restent lisibles.
+// Seule la direction change ; la distance au centre (proximité de sens) reste exacte.
+// Le calcul se fait en 3D, avant la rotation : les points ne bougent donc pas les uns par rapport aux autres quand on tourne.
+function spread(Q, dmin){
+  for (let it = 0; it < 300; it++){
+    let moved = false;
+    for (let p = 0; p < Q.length; p++) for (let q = p + 1; q < Q.length; q++){
+      const A = Q[p], B = Q[q];
+      let v = A.u.map((c, k) => c * A.rr - B.u[k] * B.rr), d = Math.hypot(...v);
+      if (d >= dmin) continue;
+      if (d < 1e-6){ v = [Math.cos(p + q), Math.sin(p + q), Math.cos(p * q)]; d = Math.hypot(...v); }  // points confondus : sens de départ arbitraire
+      const k = 0.1 * (dmin - d) / d;
+      A.u = A.u.map((c, i) => c + k * v[i] / A.rr); B.u = B.u.map((c, i) => c - k * v[i] / B.rr);
+      [A, B].forEach(X => { const n = Math.hypot(...X.u); X.u = X.u.map(c => c / n); });
+      moved = true;
+    }
+    if (!moved) break;
+  }
+}
+function draw3d(svg, nb, a, cx, cy, R, r0, smax, smin){
+  // axes : légende au bout de chaque demi-axe, masquée quand l'axe est vu presque de bout
+  [[[1, 0, 0], "plus agréable", "plus désagréable"], [[0, 1, 0], "plus agité", "plus calme"], [[0, 0, 1], "plus maîtrisé", "moins maîtrisé"]].forEach(([v, plus, minus]) => {
+    const [X, Y] = rot(...v.map(c => c * R));
+    el("line", {x1: cx - X, y1: cy + Y, x2: cx + X, y2: cy - Y, class: "spoke", "stroke-dasharray": "3 4"}, svg);
+    if (Math.hypot(X, Y) < 0.3 * R) return;
+    [[1, plus], [-1, minus]].forEach(([sg, t]) => {
+      // en haut et en bas : légende au-delà du bout de l'axe ; sur les côtés : à l'intérieur, au-dessus de l'axe, pour ne pas sortir du cadre
+      const ux = sg * X / Math.hypot(X, Y), uy = sg * Y / Math.hypot(X, Y), side = Math.abs(ux) >= 0.5, L = Math.hypot(X, Y) + (side ? 0 : 6);
+      const e = el("text", {x: cx + ux * L, y: cy - uy * L + (side ? -6 : uy < 0 ? 10 : -2),
+        "text-anchor": side ? (ux > 0 ? "end" : "start") : "middle", class: "hint"}, svg);
+      e.textContent = t;
+    });
+  });
+  const Q = nb.map(([j, s]) => {
+    const b = VW[j];
+    let d = [b.va - a.va, b.ar - a.ar, b.dc - a.dc], n = Math.hypot(...d);
+    if (n < 0.05){ d = [Math.cos(-Math.PI / 2 + j), Math.sin(-Math.PI / 2 + j), 0]; n = 1; }
+    return {j, s, u: d.map(c => c / n), rr: radius(s, smax, smin, R, r0)};
+  });
+  spread(Q, Math.max(36, 0.2 * R));
+  const P = Q.map(q => {
+    const [X, Y, Z] = rot(...q.u.map(c => c * q.rr));
+    return {j: q.j, s: q.s, x: cx + X, y: cy - Y, f: Z / R};  // f : profondeur, de −1 (derrière) à 1 (devant)
+  });
+  // à l'écran, des points séparés en profondeur peuvent encore se superposer : on décale verticalement les noms qui se chevauchent
+  const span = p => { const w = (4 + 6.8 * VW[p.j].m.length * (1 + 0.25 * p.f)) / 2; return [p.x - w, p.x + w]; };  // largeur du nom, centré sur sa position
+  for (let it = 0; it < 150; it++){
+    let moved = false;
+    for (let p = 0; p < P.length; p++) for (let q = p + 1; q < P.length; q++){
+      const A = P[p], B = P[q], [a0, a1] = span(A), [b0, b1] = span(B), dy = A.y - B.y;
+      if (a1 < b0 || b1 < a0 || Math.abs(dy) >= 16) continue;
+      const m = (16 - Math.abs(dy)) / 4 + 0.5, sg = dy > 0 || (dy === 0 && p < q) ? 1 : -1;
+      A.y += sg * m; B.y -= sg * m; moved = true;
+    }
+    if (!moved) break;
+  }
+  P.sort((p, q) => p.f - q.f);
+  // profondeur : devant, nom plus grand et plus net ; derrière, plus petit et plus pâle
+  const dot3 = p => word(svg, a, p.j, p.s, p.x, p.y, (window.innerWidth <= 1000 ? 14 : 13) * (1 + 0.25 * p.f), (0.6 + 0.4 * p.f).toFixed(2));
+  P.filter(p => p.f < 0).forEach(dot3);  // derrière le centre
+  drawCenters(svg, cx, cy);
+  P.filter(p => p.f >= 0).forEach(dot3);  // devant
+}
+// rotation à la souris ou au doigt ; la capture ne démarre qu'après un vrai glissement, pour garder les clics sur les mots
+let drag = null, frame = 0;
+$("map").addEventListener("pointerdown", ev => { if (mode3d && !ev.button) drag = {id: ev.pointerId, x: ev.clientX, y: ev.clientY, moved: false}; });
+$("map").addEventListener("pointermove", ev => {
+  if (!drag || ev.pointerId !== drag.id) return;
+  const dx = ev.clientX - drag.x, dy = ev.clientY - drag.y;
+  if (!drag.moved){ if (Math.hypot(dx, dy) < 5) return; drag.moved = true; try { $("map").setPointerCapture(ev.pointerId); } catch(err) {} }
+  yaw += dx * 0.01; pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch + dy * 0.01));
+  drag.x = ev.clientX; drag.y = ev.clientY; lpAt = Date.now();
+  if (!frame) frame = requestAnimationFrame(() => { frame = 0; draw(); });
+});
+["pointerup", "pointercancel"].forEach(n => $("map").addEventListener(n, () => { drag = null; }));
+// pictogrammes au trait (couleur du texte) des boutons dont l'aspect change
+const ICON = {
+  d3: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg>',
+  d2: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="4.5" width="15" height="15" rx="1.5"/></svg>',
+  sun: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>',
+  moon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.6A8 8 0 1 1 9.4 4a6.5 6.5 0 0 0 10.6 10.6z"/></svg>'
+};
+const setIcon = (b, k, t) => { b.innerHTML = ICON[k]; b.title = t; b.setAttribute("aria-label", t); };
+function setMode(m){
+  mode3d = m;
+  setIcon($("b3d"), m ? "d2" : "d3", m ? "Vue 2D" : "Vue 3D");
+  $("bface").classList.toggle("hidden", !m);
+  draw();
+}
+$("b3d").onclick = () => setMode(!mode3d);
+$("mapbar").querySelector(".info").onclick = ev => { ev.preventDefault(); location.hash = mode3d ? "#apropos/3d" : "#apropos/roue"; };
+$("bface").onclick = () => { yaw = 0; pitch = 0; draw(); };
+function linkify(text, self){
+  let h = esc(text);
+  VW.map(w => w.m).sort((x, y) => y.length - x.length).forEach(m => {
+    if (m === self) return;
+    const re = new RegExp(`(^|[^\\p{L}])(${m.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})(?=[^\\p{L}]|$)`, "giu");
+    h = h.replace(re, (all, pre, word) => `${pre}<span class="link" data-m="${esc(m)}">${word}</span>`);
+  });
+  return h;
+}
+function renderFiche(){
+  $("fiche").innerHTML = centers.map(i => { const w = VW[i]; return `<div class="fi"><h3>${esc(w.m)}</h3>
+    <div class="small"><span style="color:${ZC[w.z]}">${ZN[w.z]}</span> › ${esc(w.sf)} · ${ORI[w.o]}</div>
+    <div class="small">Systèmes de Panksepp : ${Object.keys(w.ing).length ? Object.keys(w.ing).sort((x, y) => w.ing[y] - w.ing[x]).map(k => PK[k] + (w.ing[k] === 2 ? " (central)" : "")).join(", ") : "aucun marqué"}</div>
+    <div class="rub"><b>Définition</b>${esc(w.d)}</div>
+    <div class="rub"><b>Ce qui la déclenche</b>${esc(w.dec)}</div>
+    <div class="rub"><b>Dans le corps</b>${esc(w.corps)}</div>
+    <div class="rub"><b>Ce vers quoi elle pousse</b>${esc(w.pousse)}</div>
+    <div class="rub"><b>Nuances avec les voisins</b>${linkify(w.nu, w.m)}</div></div>`; }).join("");
+  $("fiche").querySelectorAll(".link").forEach(e => bindPick(e, idx[e.dataset.m]));
+}
+function renderTrail(){
+  $("trail").innerHTML = `<button class="tbtn xtrail" type="button" title="Effacer le chemin" aria-label="Effacer le chemin">×</button>Chemin : ` + trail.map((cs, k) => { const t = cs.map(i => VW[i].m).join(" + "); return k === trail.length - 1 ? `<b>${esc(t)}</b>` : `<span data-k="${k}">${esc(t)}</span>`; }).join(" → ");
+  $("trail").querySelectorAll("span").forEach(e => e.onclick = () => { const k = +e.dataset.k, cs = trail[k]; trail = trail.slice(0, k + 1); setCenters([...cs]); });
+  $("trail").querySelector(".xtrail").onclick = () => { trail = [[...centers]]; renderTrail(); };  // efface l'historique, garde les mots au centre
+}
+function render(){ renderFilters(); renderList(); renderCenters(); draw(); renderFiche(); renderTrail(); }
+$("q").oninput = renderList;
+$("k").oninput = e => { K = +e.target.value; $("kv").textContent = K; draw(); };
+window.addEventListener("resize", draw);
+function route(){
+  // « #apropos/filtres » : ouvre À propos sur la section « info-filtres »
+  const [v, sec] = (location.hash || "#voisinage").slice(1).split("/"), view = v === "apropos" ? "apropos" : "voisinage";
+  ["voisinage","apropos"].forEach(x => $("v-" + x).classList.toggle("hidden", x !== view));
+  $("n-apropos").classList.toggle("on", view === "apropos");
+  if (view === "voisinage") draw();
+  else if (sec && $("info-" + sec)) $("info-" + sec).scrollIntoView();
+  else $("v-apropos").scrollTop = 0;
+}
+window.addEventListener("hashchange", route);
+$("n-apropos").onclick = ev => { if (!$("v-apropos").classList.contains("hidden")){ ev.preventDefault(); location.hash = "#voisinage"; } };  // « ? » ouvre et referme À propos
+$("nwords").textContent = VW.length;
+function setTheme(dark){
+  document.body.classList.toggle("dark", dark); setIcon($("theme"), dark ? "sun" : "moon", dark ? "Mode jour" : "Mode nuit");
+  try { localStorage.setItem("theme", dark ? "dark" : "light"); } catch(e) {}
+}
+let saved = null; try { saved = localStorage.getItem("theme"); } catch(e) {}
+setTheme(saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches);
+$("theme").onclick = () => setTheme(!document.body.classList.contains("dark"));
+setMode(false); revealCenters(); render(); route();
+})();
+</script>
+</body>
+</html>

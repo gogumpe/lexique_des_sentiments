@@ -1,0 +1,19 @@
+Lexique des sentiments
+Copyright (c) 2026 gogumpe
+
+Ce projet (fiches, textes, classification, données calculées, code de l'interface
+et scripts) est placé sous licence Creative Commons Attribution - Pas d'Utilisation
+Commerciale 4.0 International (CC BY-NC 4.0).
+
+Vous pouvez le partager et l'adapter, à condition de citer l'autrice, d'indiquer
+si des modifications ont été faites et de ne pas en faire un usage commercial.
+
+Résumé : https://creativecommons.org/licenses/by-nc/4.0/deed.fr
+Texte juridique : https://creativecommons.org/licenses/by-nc/4.0/legalcode.fr
+
+Exceptions, qui gardent leur propre licence :
+- les polices Gloria Hallelujah et Comfortaa (src/fonts/) : SIL Open Font License 1.1,
+  voir les fichiers OFL-*.txt ;
+- les valeurs de valence, d'activation et de contrôle issues du NRC VAD Lexicon v2.1
+  (Mohammad, 2025) : conditions d'utilisation du NRC (usage de recherche non commercial) ;
+- le modèle BAAI/bge-m3, utilisé pour calculer les vecteurs : licence MIT de ses auteurs.
